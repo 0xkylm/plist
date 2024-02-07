@@ -118,7 +118,7 @@ void WalkOnProcess() {
                 printf("%c", pe32.szExeFile[i]);
             }
             // printf("\t\t");
-            for (int j = i; j < 30; j++) {
+            for (int j = i; j < 32; j++) {
                 printf(" ");
             }
 
@@ -148,11 +148,11 @@ void WalkOnProcess() {
             PROCESS_MEMORY_COUNTERS memCounter;
             BOOL result = GetProcessMemoryInfo(CHANDLE,&memCounter,sizeof(memCounter));
 
-            if ((double)memCounter.WorkingSetSize / 1024.0 / 1024.0 < 10000000) {
-                printf("%fl Mb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0);
+            if ((double)memCounter.WorkingSetSize / 1024.0 / 1024.0 < 1000.0) {
+                printf("%f Mb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0);
             }
-            else if(memCounter.WorkingSetSize / 1024 / 1024 > 10000000) {
-                printf("M%fl Gb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0 / 1024.0);
+            else if(memCounter.WorkingSetSize / 1024 / 1024 > 1000.0) {
+                printf("%f Gb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0 / 1024.0 / 1024.0);
             }
             else {
                 // printf("Cannot read SeDebug Seem Not Be Activated plz use it :)");
@@ -230,12 +230,26 @@ void WalkOnProcess() {
              // NtQueryInformationProcess(CHANDLE, ProcessBasicInformation,)
 
           //  CreateRemoteThread(CHANDLE, )
-            
+
+           // cProcInfo i_Proc;
+            le32.dwSize = sizeof(THREADENTRY32);
+            DWORD aa;
             if (Thread32First(hProcessSnap, &le32)) {
                 do{
+                    HANDLE CTHANDLE = OpenThread(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, le32.th32ThreadID);
 
 
+                    if (le32.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(le32.th32OwnerProcessID)) {
+                      //  printf("Process %ls Thread 0x%04x\t", pe32.szExeFile, le32.th32ThreadID);
+                    }
+                    
+                    if (GetExitCodeThread(CTHANDLE, &aa)) {
+                        printf(" EXIT CODE: %s\t", aa);
+                    }
+                    //else printf("%d",GetLastError());
 
+
+                    le32.dwSize = sizeof(THREADENTRY32);
                 } while (Thread32Next(hProcessSnap, &le32));
             }
 
