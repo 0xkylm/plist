@@ -27,25 +27,25 @@ typedef struct {
 
 
 } Process;
-void GetToken()
-{
-    // printf("I'm in");
-    HANDLE hToken;
-    LUID luid;
-    TOKEN_PRIVILEGES tkp;
+// void GetToken()
+// {
+//     // printf("I'm in");
+//     HANDLE hToken;
+//     LUID luid;
+//     TOKEN_PRIVILEGES tkp;
 
-    OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken);
+//     OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken);
 
-    LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &luid);
+//     LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &luid);
 
-    tkp.PrivilegeCount = 1;
-    tkp.Privileges[0].Luid = luid;
-    tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+//     tkp.PrivilegeCount = 1;
+//     tkp.Privileges[0].Luid = luid;
+//     tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-    AdjustTokenPrivileges(hToken, false, &tkp, sizeof(tkp), NULL, NULL);
+//     AdjustTokenPrivileges(hToken, false, &tkp, sizeof(tkp), NULL, NULL);
 
-    CloseHandle(hToken);
-}
+//     CloseHandle(hToken);
+// }
 
 
 typedef NTSTATUS(NTAPI* _NtQueryInformationProcess)(
@@ -59,7 +59,7 @@ typedef NTSTATUS(NTAPI* _NtQueryInformationProcess)(
 HANDLE GetHandle(int PID) {
 
 
-    return OpenProcess(PROCESS_ALL_ACCESS, FALSE, PID);
+    return OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, PID);
 }
 
 
@@ -101,23 +101,28 @@ void WalkOnProcess() {
     pe32.dwSize = sizeof(PROCESSENTRY32);
     le32.dwSize = sizeof(THREADENTRY32);
 
+    printf("PID\t\tNAME\t\t\t\tTHREADS\t\tMEMORY USAGE\t\tPEB VALUE\n");
+
     int i = 0;
     if (Process32First(hProcessSnap, &pe32)) {
         do {
-            printf("PID: %d\t", pe32.th32ProcessID);
+            printf("%d\t\t", pe32.th32ProcessID);
             i = 0;
 
             //printf("Name: %s\n", pe32.szExeFile);
 
 
-               // printf("%c", pe32.szExeFile[0]);
-            printf("NAME: %c", pe32.szExeFile[i]);
+            // printf("%c", pe32.szExeFile[0]);
+            printf("%c", pe32.szExeFile[i]);
             while (pe32.szExeFile[i++] != '\0') {
                 printf("%c", pe32.szExeFile[i]);
             }
-            printf("\t");
+            // printf("\t\t");
+            for (int j = i; j < 30; j++) {
+                printf(" ");
+            }
 
-            printf("NumberOfThreads: %d \t", pe32.cntThreads);
+            printf("%d \t\t", pe32.cntThreads);
 
             // printf("ParrentProcess: %s \t", pe32.th32ParentProcessID);
 
@@ -143,14 +148,17 @@ void WalkOnProcess() {
             PROCESS_MEMORY_COUNTERS memCounter;
             BOOL result = GetProcessMemoryInfo(CHANDLE,&memCounter,sizeof(memCounter));
 
-            if (memCounter.WorkingSetSize / 1024 / 1024 < 10000000) {
-                printf("MEMORY USAGE: %lld Mb", memCounter.WorkingSetSize / 1024 / 1024);
+            if ((double)memCounter.WorkingSetSize / 1024.0 / 1024.0 < 10000000) {
+                printf("%fl Mb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0);
+            }
+            else if(memCounter.WorkingSetSize / 1024 / 1024 > 10000000) {
+                printf("M%fl Gb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0 / 1024.0);
             }
             else {
-                printf("Cannot read SeDebug Seem Not Be Activated plz use it :)");
+                // printf("Cannot read SeDebug Seem Not Be Activated plz use it :)");
             }
 
-
+    
 
             printf("\t");
 
@@ -164,9 +172,9 @@ void WalkOnProcess() {
             NtQueryInfoProcess = (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationProcess");
             NTSTATUS status = NtQueryInfoProcess(CHANDLE, ProcessBasicInformation, &pbi, sizeof(pbi), 0);
             if (!ReadProcessMemory(CHANDLE, (PVOID)((uint64_t)pbi.PebBaseAddress + 0x02), &offset, sizeof(offset), NULL)) {
-                printf("ReadProcessMeory failed to read ProcessParameters offset for pid %i, Error:%i\n", pe32.th32ProcessID, GetLastError());
+                // printf("ReadProcessMeory failed to read ProcessParameters offset for pid %i, Error:%i\n", pe32.th32ProcessID, GetLastError());
             }
-            printf("Value in offset PEB flag is: %i\t", offset);
+            printf("%i\t", offset);
 
 
 
@@ -228,12 +236,12 @@ void WalkOnProcess() {
 
 
 
-            } while (Process32Next(hProcessSnap, &le32));
-                
+                } while (Thread32Next(hProcessSnap, &le32));
+            }
 
 
-                printf("\n");
-              //  free(PEBcpy);
+            printf("\n");
+            //  free(PEBcpy);
 
             CloseHandle(CHANDLE);
 
@@ -243,7 +251,7 @@ void WalkOnProcess() {
 
 int main(int argc, char* argv[]) {
 
-    GetToken();
+    // GetToken();
 
     WalkOnProcess();
 
