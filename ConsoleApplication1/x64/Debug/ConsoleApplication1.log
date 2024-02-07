@@ -1,0 +1,4 @@
+﻿  ConsoleApplication1.cpp
+C:\Users\vboxuser\source\repos\ConsoleApplication1\ConsoleApplication1\ConsoleApplication1.cpp(59,20): warning C4477: 'printf' : la chaîne de format '%d' nécessite un argument de type 'int', mais l'argument variadique 1 est de type 'HANDLE'
+C:\Users\vboxuser\source\repos\ConsoleApplication1\ConsoleApplication1\ConsoleApplication1.cpp(59,20): warning C4313: 'printf' : '%d' dans la chaîne de format est en conflit avec l'argument 1 de type 'HANDLE'.
+  ConsoleApplication1.vcxproj -> C:\Users\vboxuser\source\repos\ConsoleApplication1\x64\Debug\ConsoleApplication1.exe
