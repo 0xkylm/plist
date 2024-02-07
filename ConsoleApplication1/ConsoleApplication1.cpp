@@ -8,6 +8,8 @@
 #include "psapi.h"
 #include <processthreadsapi.h>
 #include <stdlib.h>
+#include <time.h>
+#include <timezoneapi.h>
 
 
 
@@ -101,7 +103,7 @@ void WalkOnProcess() {
     pe32.dwSize = sizeof(PROCESSENTRY32);
     le32.dwSize = sizeof(THREADENTRY32);
 
-    printf("PID\t\tNAME\t\t\t\tTHREADS\t\tMEMORY USAGE\t\tPEB VALUE\n");
+    printf("PID\t\tNAME\t\t\t\tTHREADS\t\tMEMORY USAGE\t\tPEB VALUE\t\tCPU TIME\n");
 
     int i = 0;
     if (Process32First(hProcessSnap, &pe32)) {
@@ -149,10 +151,10 @@ void WalkOnProcess() {
             BOOL result = GetProcessMemoryInfo(CHANDLE,&memCounter,sizeof(memCounter));
 
             if ((double)memCounter.WorkingSetSize / 1024.0 / 1024.0 < 10000000) {
-                printf("%fl Mb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0);
+                printf("%lf Mb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0);
             }
             else if(memCounter.WorkingSetSize / 1024 / 1024 > 10000000) {
-                printf("M%fl Gb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0 / 1024.0);
+                printf("%lf Gb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0 / 1024.0);
             }
             else {
                 // printf("Cannot read SeDebug Seem Not Be Activated plz use it :)");
@@ -201,19 +203,23 @@ void WalkOnProcess() {
           ////  }
           //  
 
-            
 
-
-
-
-            //
             FILETIME ftCreation,ftExit,ftKernel,ftUser;
+            LPSYSTEMTIME lpSystemTime = (LPSYSTEMTIME)malloc(sizeof(LPSYSTEMTIME));
 
-            GetProcessTimes(CHANDLE, &ftCreation, &ftExit, &ftKernel, &ftUser);
+            if(GetProcessTimes(CHANDLE, &ftCreation, &ftExit, &ftKernel, &ftUser)) {
+                time_t rawtime;
+                time(&rawtime);
 
+                // ftCreation.dwHighDateTime = 0;
+                ftCreation.dwLowDateTime -= rawtime;
+                if(FileTimeToSystemTime(&ftCreation, lpSystemTime)) {
+                    printf("%d:%d:%d\t", lpSystemTime->wHour, lpSystemTime->wMinute, lpSystemTime->wSecond);
+                }
+            }     
 
-//            if(GetProcessInformation(CHANDLE,))
-           // printf("%s",  GetCommandLineW());
+            // if(GetProcessInformation(CHANDLE,))
+            // printf("%s",  GetCommandLineW());
 
 
 
