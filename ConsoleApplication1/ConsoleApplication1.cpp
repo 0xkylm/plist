@@ -208,11 +208,10 @@ void WalkOnProcess() {
 
                     char ret = 0;
                     int values[3];
-
+                
+                    // CurrentTime - SystemTime
                     for(int i = 0; i < 3; i++) {
-                        size_t s = (6-i); // 6 : index of wSeconds
-                        values[i] = *((WORD *)lpCurrentTime + s) - *((WORD *)lpSystemTime + s) - ret;
-
+                        values[i] = *((WORD *)lpCurrentTime + 6 - i) - *((WORD *)lpSystemTime + 6 - i) - ret; // 6 : index of wSeconds
                         ret = values[i] < 0;
                         if (ret) values[i] = -values[i];
                     }
