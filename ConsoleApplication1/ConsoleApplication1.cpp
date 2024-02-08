@@ -10,9 +10,18 @@
 #include <stdlib.h>
 #include <time.h>
 #include <timezoneapi.h>
+#include <intrin.h>
 
 
-
+typedef struct _THREAD_BASIC_INFORMATION
+{
+    NTSTATUS                ExitStatus;
+    PVOID                   TebBaseAddress;
+    CLIENT_ID               ClientId;
+    KAFFINITY               AffinityMask;
+    KPRIORITY               Priority;
+    KPRIORITY               BasePriority;
+} THREAD_BASIC_INFORMATION, * PTHREAD_BASIC_INFORMATION;
 typedef struct {
     int PID;
     PPROCESSENTRY32* ppe32;
@@ -58,6 +67,13 @@ typedef NTSTATUS(NTAPI* _NtQueryInformationProcess)(
     OUT PULONG              ReturnLength OPTIONAL
     ); _NtQueryInformationProcess NtQueryInfoProcess;
 
+typedef NTSTATUS(NTAPI* _NtQueryInformationThread)(
+    IN	HANDLE              ThreadHandle,
+    IN	THREADINFOCLASS    ThreadInformationClass,
+    OUT	PVOID               ThreadInformation,
+    IN	ULONG               ThreadInformationLength,
+    OUT PULONG              ReturnLength
+    ); _NtQueryInformationThread NtQueryInfoThread;
 HANDLE GetHandle(int PID) {
 
 
@@ -246,18 +262,41 @@ void WalkOnProcess() {
             le32.dwSize = sizeof(THREADENTRY32);
             DWORD aa;
             if (Thread32First(hProcessSnap, &le32)) {
-                do{
-                    HANDLE CTHANDLE = OpenThread(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, le32.th32ThreadID);
+                do {
+                    HANDLE CTHANDLE = OpenThread(THREAD_ALL_ACCESS, FALSE, le32.th32ThreadID);
 
 
                     if (le32.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(le32.th32OwnerProcessID)) {
-                      //  printf("Process %ls Thread 0x%04x\t", pe32.szExeFile, le32.th32ThreadID);
+                        // printf("0x%04x-", le32.th32ThreadID);
                     }
-                    
-                    if (GetExitCodeThread(CTHANDLE, &aa)) {
-                        printf(" EXIT CODE: %s\t", aa);
+
+                    NT_TIB* tib = (NT_TIB*)+(0x18);
+                    THREAD_BASIC_INFORMATION tbi = { 0 };
+                    ULONG BaseAddr;
+                    int ThreadQuerySetWin32StartAddress;
+
+
+                    if (NtQueryInfoThread = (_NtQueryInformationThread)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationThread")) {
+                        if (NtQueryInfoThread(CTHANDLE, (THREADINFOCLASS)0x00, &tib, sizeof(THREAD_BASIC_INFORMATION), NULL)) {
+                            if (ReadProcessMemory(CTHANDLE, tbi.TebBaseAddress, &tib, sizeof(NT_TIB), NULL)) {
+                                printf("yes"); getchar();
+                            }
+                        }
                     }
-                    //else printf("%d",GetLastError());
+                   
+
+                    /*thanks https://geoffchappell.com/studies/windows/km/ntoskrnl/api/ps/psquery/class.htm */
+
+                    /*if (!ReadProcessMemory(CTHANDLE, (PVOID)((uint64_t)tbi.TebBaseAddress), &BaseAddr, sizeof(BaseAddr), NULL)) {
+                         printf("ReadProcessMeory failed to read ProcessParameters offset for pid %i, Error:%i\n", pe32.th32ProcessID, GetLastError());
+                    }*/
+
+
+
+                    /*   if (GetExitCodeThread(CTHANDLE, &aa)) {
+                           printf(" EXIT CODE: %s\t", aa);
+                       }*/
+                       //else printf("%d",GetLastError());
 
 
                     le32.dwSize = sizeof(THREADENTRY32);
