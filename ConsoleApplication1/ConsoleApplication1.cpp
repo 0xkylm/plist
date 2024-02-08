@@ -219,7 +219,7 @@ void WalkOnProcess() {
 
                     for(int i = 2; i >= 0; i--) {
                         if (values[i] < 10) printf("0");
-                        printf("%ld:", values[i]);
+                        printf("%ld%c", values[i], i > 0?':':'\t');
                     }
                 }
             }     
