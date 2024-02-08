@@ -103,7 +103,7 @@ void WalkOnProcess() {
     pe32.dwSize = sizeof(PROCESSENTRY32);
     le32.dwSize = sizeof(THREADENTRY32);
 
-    printf("PID\t\tNAME\t\t\t\tTHREADS\t\tMEMORY USAGE\t\tPEB VALUE\t\tCPU TIME\n");
+    printf("PID\t\tNAME\t\t\t\tTHREADS\t\tMEMORY USAGE\tPEB VALUE\tCPU TIME\n");
 
     int i = 0;
     if (Process32First(hProcessSnap, &pe32)) {
@@ -160,25 +160,19 @@ void WalkOnProcess() {
                 // printf("Cannot read SeDebug Seem Not Be Activated plz use it :)");
             }
 
-    
-
             printf("\t");
 
             PROCESS_BASIC_INFORMATION   pbi;
 
             BYTE                        offset;
 
-
-
-
             NtQueryInfoProcess = (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationProcess");
             NTSTATUS status = NtQueryInfoProcess(CHANDLE, ProcessBasicInformation, &pbi, sizeof(pbi), 0);
+            
             if (!ReadProcessMemory(CHANDLE, (PVOID)((uint64_t)pbi.PebBaseAddress + 0x02), &offset, sizeof(offset), NULL)) {
                 // printf("ReadProcessMeory failed to read ProcessParameters offset for pid %i, Error:%i\n", pe32.th32ProcessID, GetLastError());
             }
-            printf("%i\t", offset);
-
-
+            printf("%i\t\t", offset);
 
           //  NtQueryInfoProcess = (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationProcess");
 
@@ -203,18 +197,30 @@ void WalkOnProcess() {
           ////  }
           //  
 
-
             FILETIME ftCreation,ftExit,ftKernel,ftUser;
-            LPSYSTEMTIME lpSystemTime = (LPSYSTEMTIME)malloc(sizeof(LPSYSTEMTIME));
+            LPSYSTEMTIME lpSystemTime = (LPSYSTEMTIME)malloc(sizeof(SYSTEMTIME));
+            LPSYSTEMTIME lpCurrentTime = (LPSYSTEMTIME)malloc(sizeof(SYSTEMTIME));
+
+            GetSystemTime(lpCurrentTime);
 
             if(GetProcessTimes(CHANDLE, &ftCreation, &ftExit, &ftKernel, &ftUser)) {
-                time_t rawtime;
-                time(&rawtime);
-
-                // ftCreation.dwHighDateTime = 0;
-                ftCreation.dwLowDateTime -= rawtime;
                 if(FileTimeToSystemTime(&ftCreation, lpSystemTime)) {
-                    printf("%d:%d:%d\t", lpSystemTime->wHour, lpSystemTime->wMinute, lpSystemTime->wSecond);
+
+                    char ret = 0;
+                    int values[3];
+
+                    for(int i = 0; i < 3; i++) {
+                        size_t s = (6-i); // 6 : index of wSeconds
+                        values[i] = *((WORD *)lpCurrentTime + s) - *((WORD *)lpSystemTime + s) - ret;
+
+                        ret = values[i] < 0;
+                        if (ret) values[i] = -values[i];
+                    }
+
+                    for(int i = 2; i >= 0; i--) {
+                        if (values[i] < 10) printf("0");
+                        printf("%ld:", values[i]);
+                    }
                 }
             }     
 
