@@ -145,54 +145,48 @@ void WalkOnProcess() {
     WCHAR* commandLineContents;
     int OneProcess = 0;
 
+
+    PROCESS_BASIC_INFORMATION       pbi;
+
+    BYTE                            offset;
+
+    PWCHAR                          cmd;
+
+    UNICODE_STRING                   LEN;
+
+    UNICODE_STRING                   UNICODE_STR;
+
+    PRTL_USER_PROCESS_PARAMETERS    test;
+
+    PWSTR                           Lbuff;
+
     hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     pe32.dwSize = sizeof(PROCESSENTRY32);
     le32.dwSize = sizeof(THREADENTRY32);
     me32.dwSize = sizeof(MODULEENTRY32);
 
-    printf("PID\t\tNAME\t\t\t\tTHREADS\t\tMEMORY USAGE\tPEB VALUE\tCPU TIME\n");
+    printf("PID\t\tNAME\t\t\t\tTHREADS\t\tMEMORY USAGE\tPEB VALUE\tELAPSED TIME\n");
 
     int i = 0;
     if (Process32First(hProcessSnap, &pe32)) {
         do {
+
+            /***********************************PID + NAME*******************************************************/
             printf("%d\t\n", pe32.th32ProcessID);
-            i = 0;
-
-            //printf("Name: %s\n", pe32.szExeFile);
-
-
-            // printf("%c", pe32.szExeFile[0]);
+            i = 0;;
             printf("%c", pe32.szExeFile[i]);
             while (pe32.szExeFile[i++] != '\0') {
                 printf("%c", pe32.szExeFile[i]);
             }
-            // printf("\t\t");
             for (int j = i; j < 32; j++) {
                 printf(" ");
             }
 
             printf("%d \t\t", pe32.cntThreads);
 
-            // printf("ParrentProcess: %s \t", pe32.th32ParentProcessID);
-
-
-             //RAM ETC HORS STRUC PE32
             HANDLE CHANDLE = GetHandle(pe32.th32ProcessID);
 
-
-
-            /* typedef struct _PROCESS_MEMORY_COUNTERS {
-                 DWORD  cb;
-                 DWORD  PageFaultCount;
-                 SIZE_T PeakWorkingSetSize;
-                 SIZE_T WorkingSetSize;
-                 SIZE_T QuotaPeakPagedPoolUsage;
-                 SIZE_T QuotaPagedPoolUsage;
-                 SIZE_T QuotaPeakNonPagedPoolUsage;
-                 SIZE_T QuotaNonPagedPoolUsage;
-                 SIZE_T PagefileUsage;
-                 SIZE_T PeakPagefileUsage;
-             } PROCESS_MEMORY_COUNTERS;*/
+            /**************************************Memory Usage***************************************************/
 
             PROCESS_MEMORY_COUNTERS memCounter;
             BOOL result = GetProcessMemoryInfo(CHANDLE, &memCounter, sizeof(memCounter));
@@ -209,66 +203,36 @@ void WalkOnProcess() {
 
             printf("\t");
 
-            PROCESS_BASIC_INFORMATION       pbi;
 
-            BYTE                            offset;
-
-            PWCHAR                          cmd;
-
-            UNICODE_STRING                          LEN;
-
-            UNICODE_STRING                   UNICODE_STR;
-
-            PRTL_USER_PROCESS_PARAMETERS    test;
-
-            PWSTR                           Lbuff;
-
+            /****************************************Process Name + argument**************************************/
 
             NtQueryInfoProcess = (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationProcess");
             NTSTATUS status = NtQueryInfoProcess(CHANDLE, ProcessBasicInformation, &pbi, sizeof(pbi), 0);
             if (ReadProcessMemory(CHANDLE, &pbi.PebBaseAddress->BeingDebugged, &offset, sizeof(offset), NULL)) {
                 if (ReadProcessMemory(CHANDLE, &pbi.PebBaseAddress->ProcessParameters, &test, sizeof(PRTL_USER_PROCESS_PARAMETERS), NULL)) {
-                    //  getchar();
                     if (ReadProcessMemory(CHANDLE, &test->CommandLine, &UNICODE_STR, sizeof(UNICODE_STRING), NULL)) {
-
-
-
-                        printf(":: %hu\t", UNICODE_STR.Length);
-
+                     //Debug :)   printf(":: %hu\t", UNICODE_STR.Length);
                         if (ReadProcessMemory(CHANDLE, &UNICODE_STR.Buffer, &Lbuff, sizeof(PWSTR), NULL)) {
                             int p = 0;
                             printf("%c", Lbuff[0]);
                             while (Lbuff[p++] != '\0') {
                                 printf("%c", Lbuff[p]);
-                              //  p++;
                             }
-                           // getchar();
-
-                            
-
                         }
-
                     }
+                }                               /*thanks https://geoffchappell.com/studies/windows/km/ntoskrnl/api/ps/psquery/class.htm */
 
-                }
             }
-
-            //       ReadProcessMemory(CHANDLE, &pbi.PebBaseAddress->Be, &offset, sizeof(offset), NULL)
-                 //  printf("ReadProcessMeory failed to read ProcessParameters offset for pid %i, Error:%i\n", pe32.th32ProcessID, GetLastError());
             if (offset == 1) {
                 printf("DEBUGGED \t");
 
                 goto LabelIsFun;
             }
-
-       
-    
-          //  printf("Value in offset PEB flag is: %i\t\t", offset);
             printf("\t\t");
             LabelIsFun:
           
             
-        
+        /***********************************************LOADDED DLL / MODULE same?*******************************************************************/
 
             if (OneProcess == 1) {
                 me32.dwSize = sizeof(MODULEENTRY32);
@@ -298,61 +262,7 @@ void WalkOnProcess() {
                 printf("\n\t\t");
             }
 
-
-
-
-
-
-
-
-   /*         pebAddress = FindPebByHandle(CHANDLE);
-
-            printf("0x%p\t", pebAddress);
-
-            printf("debug: %d\t", &pebAddress+0x2);
-
-           if (ReadProcessMemory(CHANDLE, &(((_PEB*)pebAddress)->ProcessParameters), &rtlUserProcParamsAddress, sizeof(PVOID), NULL)) {
-                if (ReadProcessMemory(CHANDLE, &(((_RTL_USER_PROCESS_PARAMETERS*)rtlUserProcParamsAddress)->CommandLine), &commandLine, sizeof(commandLine), NULL)) {
-                    commandLineContents = (WCHAR*)malloc(commandLine.Length);
-                    if (ReadProcessMemory(CHANDLE, commandLine.Buffer,
-                        commandLineContents, commandLine.Length, NULL))
-                    {
-                        getchar();
-                        commandLineContents = (WCHAR*)malloc(commandLine.Length);
-                        printf("%.*S\n", commandLine.Length / 2, commandLineContents);
-                        free(commandLineContents);
-                    }
-                }
-            }*/
-                    
-                    
-
-
-
-          
-
-          //  NtQueryInfoProcess = (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationProcess");
-
-          // 
-          //  CPEB *PEBcpy = (CPEB*)malloc(sizeof(CPEB));
-
-          //  for (int i = 0; i < sizeof(PEB); i++) {
-          //      NTSTATUS status = NtQueryInfoProcess(CHANDLE, ProcessBasicInformation, &pbi, sizeof(pbi), 0);
-          //      if (!ReadProcessMemory(CHANDLE, (PVOID)((uint64_t)pbi.PebBaseAddress + i), &offset, sizeof(offset), NULL)) {
-          //         // printf("ReadProcessMeory failed to read ProcessParameters offset for pid %i, Error:%i\n", pe32.th32ProcessID, GetLastError());
-          //      }
-          //      else {
-          //          printf("Value in offset PEB flag is: %i\t", offset);
-          //        //  PEBcpy = (CPEB*)pbi.PebBaseAddress + i;
-          //        //  printf("%i \t", PEBcpy->BeingDebugged);
-          //      }
-
-          //  }
-
-          ////  if (PEBcpy->BeingDebugged == 0 || PEBcpy->BeingDebugged == 1) {
-          //    //  printf("BeingDebug: %d", PEBcpy->BeingDebugged);
-          ////  }
-          //  
+            /*********************************ELAPSED TIME***************************************************/
 
             FILETIME ftCreation,ftExit,ftKernel,ftUser;
             LPSYSTEMTIME lpSystemTime = (LPSYSTEMTIME)malloc(sizeof(SYSTEMTIME));
@@ -381,26 +291,7 @@ void WalkOnProcess() {
                 }
             }     
 
-            // if(GetProcessInformation(CHANDLE,))
-            // printf("%s",  GetCommandLineW());
-
-
-
-
-      
-           // sprintf_s(procID, "%d", entry.th32ProcessID);
-
-
-
-
-            //  printf("MEM: %d \t", CHANDLE);
-
-
-             // NtQueryInformationProcess(CHANDLE, ProcessBasicInformation,)
-
-          //  CreateRemoteThread(CHANDLE, )
-
-           // cProcInfo i_Proc;
+            /******************************************THREAD INFO***************************************************************/
             le32.dwSize = sizeof(THREADENTRY32);
             DWORD aa;
             HANDLE hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, pe32.th32ProcessID);
@@ -413,20 +304,12 @@ void WalkOnProcess() {
                         HANDLE CTHANDLE = OpenThread(THREAD_ALL_ACCESS, FALSE, le32.th32ThreadID);
 
                         if (CTHANDLE != NULL) {
-
-
                             //if (le32.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(le32.th32OwnerProcessID)) {
                             //    // printf("0x%04x-", le32.th32ThreadID);
                             //}
 
-                            //NT_TIB tib = { 0 };
-                            //THREAD_BASIC_INFORMATION tbi = { 0 };
-                            //ULONG BaseAddr;
-                            //int ThreadQuerySetWin32StartAddress;
-                           // CONTEXT context = { 0 };
                             if (le32.th32OwnerProcessID != GetCurrentProcessId()) {
                                 DWORD FLAGS = 0;
-                             //   printf("%d == %d == %d\n", le32.th32OwnerProcessID, pe32.th32ProcessID, GetCurrentProcessId());
                                 if (le32.th32OwnerProcessID != GetCurrentProcessId()) {
                                     if (SuspendThread(CTHANDLE) != -1) {
                                         CONTEXT context = { 0 };
@@ -436,56 +319,17 @@ void WalkOnProcess() {
 
                                             if ((void*)context.Rip != 0) {
 
-
                                                 printf("THREAD ID %i :: EntryPoint:: 0x%p\n", le32.th32ThreadID, (void*)context.Rip);
                                             }
 
 
 
                                         }
-
-                                       // printf("--------------------------------------------------\n");
-
-                                        ResumeThread(CTHANDLE);
                                     }
                                 }
                             }
-
-
-
-
                         }
-
-
-
-
-                        /*       if (NtQueryInfoThread = (_NtQueryInformationThread)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationThread")) {
-                                   if (NtQueryInfoThread(CTHANDLE, (THREADINFOCLASS)0x00, &tib, sizeof(THREAD_BASIC_INFORMATION), NULL)) {
-                                       if (ReadProcessMemory(CTHANDLE, tbi.TebBaseAddress, &tib, sizeof(NT_TIB), NULL)) {
-                                           printf("yes"); getchar();
-                                       }
-                                   }
-                               }*/
-
-
-                               /*thanks https://geoffchappell.com/studies/windows/km/ntoskrnl/api/ps/psquery/class.htm */
-
-                               /*if (!ReadProcessMemory(CTHANDLE, (PVOID)((uint64_t)tbi.TebBaseAddress), &BaseAddr, sizeof(BaseAddr), NULL)) {
-                                    printf("ReadProcessMeory failed to read ProcessParameters offset for pid %i, Error:%i\n", pe32.th32ProcessID, GetLastError());
-                               }*/
-
-
-
-                               /*   if (GetExitCodeThread(CTHANDLE, &aa)) {
-                                      printf(" EXIT CODE: %s\t", aa);
-                                  }*/
-                                  //else printf("%d",GetLastError());
-
                     }
-                    else 
-                      
-                        
-                
                     le32.dwSize = sizeof(THREADENTRY32);
                 } while (Thread32Next(hThreadSnap, &le32));
             }
@@ -493,9 +337,8 @@ void WalkOnProcess() {
 
 
             printf("\n");
-            //  free(PEBcpy);
-
             CloseHandle(CHANDLE);
+            //Closes Handle et freee si on a des truc a free
 
         } while (Process32Next(hProcessSnap, &pe32));
     }
