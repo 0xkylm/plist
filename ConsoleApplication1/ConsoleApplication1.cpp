@@ -39,25 +39,25 @@ typedef struct {
 
 
 } Process;
-// void GetToken()
-// {
-//     // printf("I'm in");
-//     HANDLE hToken;
-//     LUID luid;
-//     TOKEN_PRIVILEGES tkp;
+ void GetToken()
+{
+     // printf("I'm in");
+     HANDLE hToken;
+     LUID luid;
+     TOKEN_PRIVILEGES tkp;
 
-//     OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken);
+     OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken);
 
-//     LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &luid);
+     LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &luid);
 
-//     tkp.PrivilegeCount = 1;
-//     tkp.Privileges[0].Luid = luid;
-//     tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+     tkp.PrivilegeCount = 1;
+     tkp.Privileges[0].Luid = luid;
+     tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-//     AdjustTokenPrivileges(hToken, false, &tkp, sizeof(tkp), NULL, NULL);
+     AdjustTokenPrivileges(hToken, false, &tkp, sizeof(tkp), NULL, NULL);
 
-//     CloseHandle(hToken);
-// }
+     CloseHandle(hToken);
+}
 
 
 typedef NTSTATUS(NTAPI* _NtQueryInformationProcess)(
@@ -135,16 +135,20 @@ typedef struct CPEB {
 void WalkOnProcess() {
     
     HANDLE hProcessSnap;
+    HANDLE hModuleSnap;
     PROCESSENTRY32 pe32;
     THREADENTRY32 le32;
+    MODULEENTRY32 me32;
     PVOID pebAddress;
     PVOID rtlUserProcParamsAddress;
     UNICODE_STRING commandLine;
     WCHAR* commandLineContents;
+    int OneProcess = 0;
 
     hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     pe32.dwSize = sizeof(PROCESSENTRY32);
     le32.dwSize = sizeof(THREADENTRY32);
+    me32.dwSize = sizeof(MODULEENTRY32);
 
     printf("PID\t\tNAME\t\t\t\tTHREADS\t\tMEMORY USAGE\tPEB VALUE\tCPU TIME\n");
 
@@ -232,12 +236,13 @@ void WalkOnProcess() {
                         printf(":: %hu\t", UNICODE_STR.Length);
 
                         if (ReadProcessMemory(CHANDLE, &UNICODE_STR.Buffer, &Lbuff, sizeof(PWSTR), NULL)) {
-
-                            printf("%c", Lbuff[0]);
-                            while (Lbuff[i++] != '\0') {
-                                printf("%c", Lbuff[i]);
+                            int p = 0;
+                      //      printf("%c", Lbuff[0]);
+                            while (Lbuff[p++] != '\0') {
+                    //            printf("%c", Lbuff[p]);
+                              //  p++;
                             }
-                          //  getchar();
+                           // getchar();
 
                             
 
@@ -264,6 +269,41 @@ void WalkOnProcess() {
           
             
         
+
+            if (OneProcess == 1) {
+                me32.dwSize = sizeof(MODULEENTRY32);
+                hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE32 | TH32CS_SNAPMODULE, pe32.th32ProcessID);
+                if (Module32First(hModuleSnap, &me32)) {
+                    do {
+                        // HANDLE CTHANDLE = OpenThread(THREAD_ALL_ACCESS, FALSE, le32.th32ThreadID);
+
+                       // printf("ME32 = %s", me32.szModule);
+              /*          printf("%c", me32.szExePath[0]);
+                        int w = 0;
+                        while (me32.szExePath[w++] != '\0') {
+                           printf("%c", me32.szExePath[w]);   //pasbo
+                        }
+                        printf("\n\t\t");*/
+
+                        printf("%c", me32.szModule[0]);
+                        int   w = 0;
+                        while (me32.szModule[w++] != '\0') {
+                            printf("%c", me32.szModule[w]);
+                        }
+
+                        printf("---");
+
+                    } while (Module32Next(hModuleSnap, &me32));
+                }
+                printf("\n\t\t");
+            }
+
+
+
+
+
+
+
 
    /*         pebAddress = FindPebByHandle(CHANDLE);
 
@@ -363,7 +403,9 @@ void WalkOnProcess() {
            // cProcInfo i_Proc;
             le32.dwSize = sizeof(THREADENTRY32);
             DWORD aa;
-            if (Thread32First(hProcessSnap, &le32)) {
+            HANDLE hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, pe32.th32ProcessID);
+
+            if (Thread32First(hThreadSnap, &le32)) {
                 do {
                     HANDLE CTHANDLE = OpenThread(THREAD_ALL_ACCESS, FALSE, le32.th32ThreadID);
 
@@ -402,7 +444,7 @@ void WalkOnProcess() {
 
 
                     le32.dwSize = sizeof(THREADENTRY32);
-                } while (Thread32Next(hProcessSnap, &le32));
+                } while (Thread32Next(hThreadSnap, &le32));
             }
 
 
@@ -417,7 +459,7 @@ void WalkOnProcess() {
 
 int main(int argc, char* argv[]) {
 
-    // GetToken();
+    GetToken();
 
     WalkOnProcess();
 
