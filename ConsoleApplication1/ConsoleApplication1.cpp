@@ -13,6 +13,7 @@
 #include <intrin.h>
 
 
+
 typedef struct _THREAD_BASIC_INFORMATION
 {
     NTSTATUS                ExitStatus;
@@ -76,11 +77,37 @@ typedef NTSTATUS(NTAPI* _NtQueryInformationThread)(
     ); _NtQueryInformationThread NtQueryInfoThread;
 HANDLE GetHandle(int PID) {
 
+    //PROCESS_QUERY_INFORMATION
+    //PROCESS_QUERY_LIMITED_INFORMATION
+    HANDLE h;
+    h = OpenProcess(PROCESS_ALL_ACCESS | PROCESS_VM_READ, FALSE, PID);
+    if (h == NULL) {
+        OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, PID);
+        if (h == NULL) {
+            OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, FALSE, PID);
 
-    return OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, PID);
+
+        }
+
+    }
+
+    return h;
 }
 
 
+PVOID FindPebByHandle(HANDLE CHANDLE) {
+    PROCESS_BASIC_INFORMATION pbi;
+
+    if (_NtQueryInformationProcess NtQueryInfoProcess = (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationProcess")) {
+        NTSTATUS status = NtQueryInfoProcess(CHANDLE, (ProcessBasicInformation), &pbi, sizeof(pbi), 0);
+
+
+        if (ReadProcessMemory(CHANDLE, 0, &pbi, sizeof(pbi), NULL)) {
+            return pbi.PebBaseAddress;
+        }
+    }
+    return pbi.PebBaseAddress;
+}
 
 typedef struct CPEB {
     BYTE                          Reserved1[2];
@@ -150,45 +177,119 @@ void WalkOnProcess() {
 
 
 
-           /* typedef struct _PROCESS_MEMORY_COUNTERS {
-                DWORD  cb;
-                DWORD  PageFaultCount;
-                SIZE_T PeakWorkingSetSize;
-                SIZE_T WorkingSetSize;
-                SIZE_T QuotaPeakPagedPoolUsage;
-                SIZE_T QuotaPagedPoolUsage;
-                SIZE_T QuotaPeakNonPagedPoolUsage;
-                SIZE_T QuotaNonPagedPoolUsage;
-                SIZE_T PagefileUsage;
-                SIZE_T PeakPagefileUsage;
-            } PROCESS_MEMORY_COUNTERS;*/
+            /* typedef struct _PROCESS_MEMORY_COUNTERS {
+                 DWORD  cb;
+                 DWORD  PageFaultCount;
+                 SIZE_T PeakWorkingSetSize;
+                 SIZE_T WorkingSetSize;
+                 SIZE_T QuotaPeakPagedPoolUsage;
+                 SIZE_T QuotaPagedPoolUsage;
+                 SIZE_T QuotaPeakNonPagedPoolUsage;
+                 SIZE_T QuotaNonPagedPoolUsage;
+                 SIZE_T PagefileUsage;
+                 SIZE_T PeakPagefileUsage;
+             } PROCESS_MEMORY_COUNTERS;*/
 
             PROCESS_MEMORY_COUNTERS memCounter;
-            BOOL result = GetProcessMemoryInfo(CHANDLE,&memCounter,sizeof(memCounter));
+            BOOL result = GetProcessMemoryInfo(CHANDLE, &memCounter, sizeof(memCounter));
 
             if ((double)memCounter.WorkingSetSize / 1024.0 / 1024.0 < 1000.0) {
                 printf("%f Mb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0);
             }
-            else if(memCounter.WorkingSetSize / 1024 / 1024 > 1000.0) {
+            else if (memCounter.WorkingSetSize / 1024 / 1024 / 1024 < 10.0) {
                 printf("%f Gb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0 / 1024.0 / 1024.0);
             }
             else {
-                // printf("Cannot read SeDebug Seem Not Be Activated plz use it :)");
+                printf("Cannot read :)");
             }
 
             printf("\t");
 
-            PROCESS_BASIC_INFORMATION   pbi;
+            PROCESS_BASIC_INFORMATION       pbi;
 
-            BYTE                        offset;
+            BYTE                            offset;
+
+            PWCHAR                          cmd;
+
+            UNICODE_STRING                          LEN;
+
+            UNICODE_STRING                   UNICODE_STR;
+
+            PRTL_USER_PROCESS_PARAMETERS    test;
+
+            PWSTR                           Lbuff;
+
 
             NtQueryInfoProcess = (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationProcess");
             NTSTATUS status = NtQueryInfoProcess(CHANDLE, ProcessBasicInformation, &pbi, sizeof(pbi), 0);
-            
-            if (!ReadProcessMemory(CHANDLE, (PVOID)((uint64_t)pbi.PebBaseAddress + 0x02), &offset, sizeof(offset), NULL)) {
-                // printf("ReadProcessMeory failed to read ProcessParameters offset for pid %i, Error:%i\n", pe32.th32ProcessID, GetLastError());
+            if (ReadProcessMemory(CHANDLE, &pbi.PebBaseAddress->BeingDebugged, &offset, sizeof(offset), NULL)) {
+                if (ReadProcessMemory(CHANDLE, &pbi.PebBaseAddress->ProcessParameters, &test, sizeof(PRTL_USER_PROCESS_PARAMETERS), NULL)) {
+                    //  getchar();
+                    if (ReadProcessMemory(CHANDLE, &test->CommandLine, &UNICODE_STR, sizeof(UNICODE_STRING), NULL)) {
+
+
+
+                        printf(":: %hu\t", UNICODE_STR.Length);
+
+                        if (ReadProcessMemory(CHANDLE, &UNICODE_STR.Buffer, &Lbuff, sizeof(PWSTR), NULL)) {
+
+                            printf("%c", Lbuff[0]);
+                            while (Lbuff[i++] != '\0') {
+                                printf("%c", Lbuff[i]);
+                            }
+                          //  getchar();
+
+                            
+
+                        }
+
+                    }
+
+                }
             }
-            printf("%i\t\t", offset);
+
+            //       ReadProcessMemory(CHANDLE, &pbi.PebBaseAddress->Be, &offset, sizeof(offset), NULL)
+                 //  printf("ReadProcessMeory failed to read ProcessParameters offset for pid %i, Error:%i\n", pe32.th32ProcessID, GetLastError());
+            if (offset == 1) {
+                printf("DEBUGGED \t");
+
+                goto LabelIsFun;
+            }
+
+       
+    
+          //  printf("Value in offset PEB flag is: %i\t\t", offset);
+            printf("\t\t");
+            LabelIsFun:
+          
+            
+        
+
+   /*         pebAddress = FindPebByHandle(CHANDLE);
+
+            printf("0x%p\t", pebAddress);
+
+            printf("debug: %d\t", &pebAddress+0x2);
+
+           if (ReadProcessMemory(CHANDLE, &(((_PEB*)pebAddress)->ProcessParameters), &rtlUserProcParamsAddress, sizeof(PVOID), NULL)) {
+                if (ReadProcessMemory(CHANDLE, &(((_RTL_USER_PROCESS_PARAMETERS*)rtlUserProcParamsAddress)->CommandLine), &commandLine, sizeof(commandLine), NULL)) {
+                    commandLineContents = (WCHAR*)malloc(commandLine.Length);
+                    if (ReadProcessMemory(CHANDLE, commandLine.Buffer,
+                        commandLineContents, commandLine.Length, NULL))
+                    {
+                        getchar();
+                        commandLineContents = (WCHAR*)malloc(commandLine.Length);
+                        printf("%.*S\n", commandLine.Length / 2, commandLineContents);
+                        free(commandLineContents);
+                    }
+                }
+            }*/
+                    
+                    
+
+
+
+          
 
           //  NtQueryInfoProcess = (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationProcess");
 
@@ -271,7 +372,7 @@ void WalkOnProcess() {
                         // printf("0x%04x-", le32.th32ThreadID);
                     }
 
-                    NT_TIB* tib = (NT_TIB*)+(0x18);
+                    NT_TIB tib = { 0 };
                     THREAD_BASIC_INFORMATION tbi = { 0 };
                     ULONG BaseAddr;
                     int ThreadQuerySetWin32StartAddress;
@@ -292,7 +393,7 @@ void WalkOnProcess() {
                          printf("ReadProcessMeory failed to read ProcessParameters offset for pid %i, Error:%i\n", pe32.th32ProcessID, GetLastError());
                     }*/
 
-
+                    
 
                     /*   if (GetExitCodeThread(CTHANDLE, &aa)) {
                            printf(" EXIT CODE: %s\t", aa);
