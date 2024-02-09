@@ -6,6 +6,4 @@ C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp
 C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(218,53): warning C4101: 'LEN' : variable locale non référencée
 C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(216,45): warning C4101: 'cmd' : variable locale non référencée
 C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(405,19): warning C4101: 'aa' : variable locale non référencée
-C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(419,27): warning C4101: 'BaseAddr' : variable locale non référencée
-C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(420,25): warning C4101: 'ThreadQuerySetWin32StartAddress' : variable locale non référencée
   ConsoleApplication1.vcxproj -> C:\Users\vboxuser\source\repos\plist\x64\Debug\ConsoleApplication1.exe

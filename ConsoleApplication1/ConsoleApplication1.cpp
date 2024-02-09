@@ -155,7 +155,7 @@ void WalkOnProcess() {
     int i = 0;
     if (Process32First(hProcessSnap, &pe32)) {
         do {
-            printf("%d\t\t", pe32.th32ProcessID);
+            printf("%d\t\n", pe32.th32ProcessID);
             i = 0;
 
             //printf("Name: %s\n", pe32.szExeFile);
@@ -237,9 +237,9 @@ void WalkOnProcess() {
 
                         if (ReadProcessMemory(CHANDLE, &UNICODE_STR.Buffer, &Lbuff, sizeof(PWSTR), NULL)) {
                             int p = 0;
-                      //      printf("%c", Lbuff[0]);
+                            printf("%c", Lbuff[0]);
                             while (Lbuff[p++] != '\0') {
-                    //            printf("%c", Lbuff[p]);
+                                printf("%c", Lbuff[p]);
                               //  p++;
                             }
                            // getchar();
@@ -405,47 +405,91 @@ void WalkOnProcess() {
             DWORD aa;
             HANDLE hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, pe32.th32ProcessID);
 
-            if (Thread32First(hThreadSnap, &le32)) {
+            if (Thread32First(hThreadSnap, &le32) && pe32.th32ProcessID != GetCurrentProcessId()) {
                 do {
-                    HANDLE CTHANDLE = OpenThread(THREAD_ALL_ACCESS, FALSE, le32.th32ThreadID);
 
 
-                    if (le32.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(le32.th32OwnerProcessID)) {
-                        // printf("0x%04x-", le32.th32ThreadID);
-                    }
+                    if (le32.th32OwnerProcessID == pe32.th32ProcessID && pe32.th32ProcessID != GetCurrentProcessId()) {
+                        HANDLE CTHANDLE = OpenThread(THREAD_ALL_ACCESS, FALSE, le32.th32ThreadID);
 
-                    NT_TIB tib = { 0 };
-                    THREAD_BASIC_INFORMATION tbi = { 0 };
-                    ULONG BaseAddr;
-                    int ThreadQuerySetWin32StartAddress;
+                        if (CTHANDLE != NULL) {
 
 
-                    if (NtQueryInfoThread = (_NtQueryInformationThread)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationThread")) {
-                        if (NtQueryInfoThread(CTHANDLE, (THREADINFOCLASS)0x00, &tib, sizeof(THREAD_BASIC_INFORMATION), NULL)) {
-                            if (ReadProcessMemory(CTHANDLE, tbi.TebBaseAddress, &tib, sizeof(NT_TIB), NULL)) {
-                                printf("yes"); getchar();
+                            //if (le32.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(le32.th32OwnerProcessID)) {
+                            //    // printf("0x%04x-", le32.th32ThreadID);
+                            //}
+
+                            //NT_TIB tib = { 0 };
+                            //THREAD_BASIC_INFORMATION tbi = { 0 };
+                            //ULONG BaseAddr;
+                            //int ThreadQuerySetWin32StartAddress;
+                           // CONTEXT context = { 0 };
+                            if (le32.th32OwnerProcessID != GetCurrentProcessId()) {
+                                DWORD FLAGS = 0;
+                             //   printf("%d == %d == %d\n", le32.th32OwnerProcessID, pe32.th32ProcessID, GetCurrentProcessId());
+                                if (le32.th32OwnerProcessID != GetCurrentProcessId()) {
+                                    if (SuspendThread(CTHANDLE) != -1) {
+                                        CONTEXT context = { 0 };
+                                        context.ContextFlags = CONTEXT_FULL;
+                                        if (GetThreadContext(CTHANDLE, &context)) {
+                                            ResumeThread(CTHANDLE);
+
+                                            if ((void*)context.Rip != 0) {
+
+
+                                                printf("THREAD ID %i :: EntryPoint:: 0x%p\n", le32.th32ThreadID, (void*)context.Rip);
+                                            }
+
+
+
+                                        }
+
+                                       // printf("--------------------------------------------------\n");
+
+                                        ResumeThread(CTHANDLE);
+                                    }
+                                }
                             }
+
+
+
+
                         }
+
+
+
+
+                        /*       if (NtQueryInfoThread = (_NtQueryInformationThread)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationThread")) {
+                                   if (NtQueryInfoThread(CTHANDLE, (THREADINFOCLASS)0x00, &tib, sizeof(THREAD_BASIC_INFORMATION), NULL)) {
+                                       if (ReadProcessMemory(CTHANDLE, tbi.TebBaseAddress, &tib, sizeof(NT_TIB), NULL)) {
+                                           printf("yes"); getchar();
+                                       }
+                                   }
+                               }*/
+
+
+                               /*thanks https://geoffchappell.com/studies/windows/km/ntoskrnl/api/ps/psquery/class.htm */
+
+                               /*if (!ReadProcessMemory(CTHANDLE, (PVOID)((uint64_t)tbi.TebBaseAddress), &BaseAddr, sizeof(BaseAddr), NULL)) {
+                                    printf("ReadProcessMeory failed to read ProcessParameters offset for pid %i, Error:%i\n", pe32.th32ProcessID, GetLastError());
+                               }*/
+
+
+
+                               /*   if (GetExitCodeThread(CTHANDLE, &aa)) {
+                                      printf(" EXIT CODE: %s\t", aa);
+                                  }*/
+                                  //else printf("%d",GetLastError());
+
                     }
-                   
-
-                    /*thanks https://geoffchappell.com/studies/windows/km/ntoskrnl/api/ps/psquery/class.htm */
-
-                    /*if (!ReadProcessMemory(CTHANDLE, (PVOID)((uint64_t)tbi.TebBaseAddress), &BaseAddr, sizeof(BaseAddr), NULL)) {
-                         printf("ReadProcessMeory failed to read ProcessParameters offset for pid %i, Error:%i\n", pe32.th32ProcessID, GetLastError());
-                    }*/
-
-                    
-
-                    /*   if (GetExitCodeThread(CTHANDLE, &aa)) {
-                           printf(" EXIT CODE: %s\t", aa);
-                       }*/
-                       //else printf("%d",GetLastError());
-
-
+                    else 
+                      
+                        
+                
                     le32.dwSize = sizeof(THREADENTRY32);
                 } while (Thread32Next(hThreadSnap, &le32));
             }
+            else 
 
 
             printf("\n");
