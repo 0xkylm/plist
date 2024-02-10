@@ -282,11 +282,14 @@ void WalkOnProcess() {
 
             //    pbi = { 0 };
 
-                /****************************************Process Name + argument**************************************/
 
             NtQueryInfoProcess = (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationProcess");
             NTSTATUS status = NtQueryInfoProcess(CHANDLE, ProcessBasicInformation, &pbi, sizeof(pbi), 0);
+            /***************************************ARE DEBUGGED ?*********************************************************************************/
+
             if (ReadProcessMemory(CHANDLE, &pbi.PebBaseAddress->BeingDebugged, &offset, sizeof(offset), NULL)) {
+                /****************************************Process Name + argument**************************************/
+
 
                 PPEB ppeb = (PPEB)((PVOID*)&pbi)[1];
                 PPEB ppebCopy = (PPEB)malloc(sizeof(PEB));
@@ -302,27 +305,13 @@ void WalkOnProcess() {
                         }
                     }
                 }
-
-                /***************************************ARE DEBUGGED ?*********************************************************************************/
-
-             /*   if (ReadProcessMemory(CHANDLE, &pbi.PebBaseAddress->ProcessParameters, &test, sizeof(PRTL_USER_PROCESS_PARAMETERS), NULL)) {
-                    if (ReadProcessMemory(CHANDLE, &test->CommandLine, &UNICODE_STR, sizeof(UNICODE_STRING), NULL)) {
-                     //Debug :)   printf(":: %hu\t", UNICODE_STR.Length);
-                      /*  if (ReadProcessMemory(CHANDLE, &UNICODE_STR.Buffer, &Lbuff, sizeof(PWSTR), NULL)) {
-                            int p = 0;
-                            printf("%c", Lbuff[0]);
-                            while (Lbuff[p++] != '\0') {
-                                printf("%c", Lbuff[p]);
-                            }
-                        }
-                    }
-                }           */                    /*thanks https://geoffchappell.com/studies/windows/km/ntoskrnl/api/ps/psquery/class.htm */
+                  /*thanks https://geoffchappell.com/studies/windows/km/ntoskrnl/api/ps/psquery/class.htm */
 
             }
             if (offset == 1) {
                 printf("DEBUGGED \t");
 
-                goto LabelIsFun;
+                goto LabelIsFun; //:)
             }
             printf("\t\t");
         LabelIsFun:
@@ -422,6 +411,17 @@ void WalkOnProcess() {
                              //   printf("%d", status);
                                 if (status >= 0)
                                 {
+
+
+                                    NTSTATUS status2 = NtQueryInfoThread(CTHANDLE, (THREADINFOCLASS)9, &addr, sizeof(addr), nullptr);
+                                    if (status >= 0)
+                                    {
+                                        printf("ThreadQuerySetWin32StartAddress:: 0x%p\n", addr);
+                                    }
+
+
+
+                                    /***************************TEB GOESSSSSS BRRRRRRRRRRRRRR**********************************/
                                     ReadProcessMemory(CHANDLE, tbi.TebBaseAddress, &tib, sizeof(tbi), nullptr);
 
 
@@ -434,51 +434,17 @@ void WalkOnProcess() {
 
 
                                     if (ReadProcessMemory(CHANDLE, pteb, ptebCopy, sizeof(TEB), NULL)) {
-                                            printf("PTEB ADD:%p\n", ptebCopy);
+                                            printf("PTEB  ADD:%p\n", ptebCopy);
 
                                             PPEB peb_1 = (PPEB)((PVOID*)&ptebCopy->ProcessEnvironmentBlock);
                                             PPEB pebCopy_1 = (PPEB)malloc(sizeof(PEB));
                                             if (ReadProcessMemory(CHANDLE, peb_1, pebCopy_1, sizeof(TEB), NULL)) {
                                                 printf("Addr Being Debugged :)%p\n", pebCopy_1->BeingDebugged);
-                                                
-                                                
+                                                /*To FIX*/
                                             }
-
                                     }
-
-                                    
-
-                                    
-                                    
                                 }
                             }
-
-                           
-                                //NTSTATUS status2 = NtQueryInfoThread(CTHANDLE, (THREADINFOCLASS)0, &tbi, sizeof(tbi), 0);
-                                //if (status2 >= 0) {
-                                //    if (ReadProcessMemory(CHANDLE, tbi.TebBaseAddress, &tbi, sizeof(tbi), NULL)) {
-
-                                //        PTEB pteb = (PTEB)((PVOID*)&pbi)[1];
-                                //        PTEB ptebCopy = (PTEB)malloc(sizeof(TEB));
-                                //        printf("PTEB PEB ADD:%p\n", pteb->ProcessEnvironmentBlock);
-
-                                //        if (ReadProcessMemory(CTHANDLE, pteb, ptebCopy, sizeof(TEB), NULL)) {
-                                //            printf("PTEB PEB ADD:%p\n", pteb->ProcessEnvironmentBlock);
-
-                                //        }
-                                //    }
-                                //}
-
-                             
-                            
-
-                            if (NtQueryInfoThread(CTHANDLE, (THREADINFOCLASS)0x9, &addr, sizeof(PVOID), 0)) {
-                                getchar();
-                            }
-                           
-
-                       
-
                             /****************************Thread Id + EntryPoint:)************************************/
 
                             if (le32.th32OwnerProcessID != GetCurrentProcessId()) {
@@ -489,10 +455,9 @@ void WalkOnProcess() {
                                         context.ContextFlags = CONTEXT_FULL;
                                         if (GetThreadContext(CTHANDLE, &context)) {
                                             ResumeThread(CTHANDLE);
-
                                             if ((void*)context.Rip != 0) {
 
-                                                printf("THREAD ID %i :: EntryPoint:: 0x%p\n", le32.th32ThreadID, (void*)context.Rip);
+                                                printf("THREAD ID %i :: Thread Rip:: 0x%p\n", le32.th32ThreadID, (void*)context.Rip);
                                             }
                                         }
                                     }
