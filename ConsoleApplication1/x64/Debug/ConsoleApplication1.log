@@ -1,9 +1,12 @@
 ﻿  ConsoleApplication1.cpp
-C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(155,38): warning C4101: 'LEN' : variable locale non référencée
-C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(153,37): warning C4101: 'cmd' : variable locale non référencée
-C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(144,20): warning C4101: 'commandLine' : variable locale non référencée
-C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(142,11): warning C4101: 'pebAddress' : variable locale non référencée
-C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(145,12): warning C4101: 'commandLineContents' : variable locale non référencée
-C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(143,11): warning C4101: 'rtlUserProcParamsAddress' : variable locale non référencée
-C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(296,19): warning C4101: 'aa' : variable locale non référencée
+C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(232,38): warning C4101: 'LEN' : variable locale non référencée
+C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(230,37): warning C4101: 'cmd' : variable locale non référencée
+C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(221,20): warning C4101: 'commandLine' : variable locale non référencée
+C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(219,11): warning C4101: 'pebAddress' : variable locale non référencée
+C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(222,12): warning C4101: 'commandLineContents' : variable locale non référencée
+C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(234,38): warning C4101: 'UNICODE_STR' : variable locale non référencée
+C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(238,37): warning C4101: 'Lbuff' : variable locale non référencée
+C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(236,37): warning C4101: 'test' : variable locale non référencée
+C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(220,11): warning C4101: 'rtlUserProcParamsAddress' : variable locale non référencée
+C:\Users\vboxuser\source\repos\plist\ConsoleApplication1\ConsoleApplication1.cpp(393,19): warning C4101: 'aa' : variable locale non référencée
   ConsoleApplication1.vcxproj -> C:\Users\vboxuser\source\repos\plist\x64\Debug\ConsoleApplication1.exe

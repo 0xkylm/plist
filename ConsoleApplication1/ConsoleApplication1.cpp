@@ -11,6 +11,82 @@
 #include <time.h>
 #include <timezoneapi.h>
 #include <intrin.h>
+#include <winnt.h>
+
+
+//typedef struct CUS_CONTEXT {
+//    DWORD64 P1Home;
+//    DWORD64 P2Home;
+//    DWORD64 P3Home;
+//    DWORD64 P4Home;
+//    DWORD64 P5Home;
+//    DWORD64 P6Home;
+//    DWORD   ContextFlags;
+//    DWORD   MxCsr;
+//    WORD    SegCs;
+//    WORD    SegDs;
+//    WORD    SegEs;
+//    WORD    SegFs;
+//    WORD    SegGs;
+//    WORD    SegSs;
+//    DWORD   EFlags;
+//    DWORD64 Dr0;
+//    DWORD64 Dr1;
+//    DWORD64 Dr2;
+//    DWORD64 Dr3;
+//    DWORD64 Dr6;
+//    DWORD64 Dr7;
+//    DWORD64 Rax;
+//    DWORD64 Rcx;
+//    DWORD64 Rdx;
+//    DWORD64 Rbx;
+//    DWORD64 Rsp;
+//    DWORD64 Rbp;
+//    DWORD64 Rsi;
+//    DWORD64 Rdi;
+//    DWORD64 R8;
+//    DWORD64 R9;
+//    DWORD64 R10;
+//    DWORD64 R11;
+//    DWORD64 R12;
+//    DWORD64 R13;
+//    DWORD64 R14;
+//    DWORD64 R15;
+//    DWORD64 Rip;
+//    union {
+//        XMM_SAVE_AREA32 FltSave;
+//        DWORD64         Q[16];
+//        ULONGLONG       D[32];
+//        struct {
+//            M128A Header[2];
+//            M128A Legacy[8];
+//            M128A Xmm0;
+//            M128A Xmm1;
+//            M128A Xmm2;
+//            M128A Xmm3;
+//            M128A Xmm4;
+//            M128A Xmm5;
+//            M128A Xmm6;
+//            M128A Xmm7;
+//            M128A Xmm8;
+//            M128A Xmm9;
+//            M128A Xmm10;
+//            M128A Xmm11;
+//            M128A Xmm12;
+//            M128A Xmm13;
+//            M128A Xmm14;
+//            M128A Xmm15;
+//        } DUMMYSTRUCTNAME;
+//        DWORD           S[32];
+//    } DUMMYUNIONNAME;
+//    M128A   VectorRegister[26];
+//    DWORD64 VectorControl;
+//    DWORD64 DebugControl;
+//    DWORD64 LastBranchToRip;
+//    DWORD64 LastBranchFromRip;
+//    DWORD64 LastExceptionToRip;
+//    DWORD64 LastExceptionFromRip;
+//} CUS_CONTEXT, * PCUS_CONTEXT;
 
 
 
@@ -39,25 +115,25 @@ typedef struct {
 
 
 } Process;
- void GetToken()
-{
-     // printf("I'm in");
-     HANDLE hToken;
-     LUID luid;
-     TOKEN_PRIVILEGES tkp;
-
-     OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken);
-
-     LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &luid);
-
-     tkp.PrivilegeCount = 1;
-     tkp.Privileges[0].Luid = luid;
-     tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-
-     AdjustTokenPrivileges(hToken, false, &tkp, sizeof(tkp), NULL, NULL);
-
-     CloseHandle(hToken);
-}
+// void GetToken()
+//{
+//     // printf("I'm in");
+//     HANDLE hToken;
+//     LUID luid;
+//     TOKEN_PRIVILEGES tkp;
+//
+//     OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken);
+//
+//     LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &luid);
+//
+//     tkp.PrivilegeCount = 1;
+//     tkp.Privileges[0].Luid = luid;
+//     tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+//
+//     AdjustTokenPrivileges(hToken, false, &tkp, sizeof(tkp), NULL, NULL);
+//
+//     CloseHandle(hToken);
+//}
 
 
 typedef NTSTATUS(NTAPI* _NtQueryInformationProcess)(
@@ -132,6 +208,7 @@ typedef struct CPEB {
 } CPEB, * PCPEB;
 
 
+
 void WalkOnProcess() {
     
     HANDLE hProcessSnap;
@@ -203,16 +280,35 @@ void WalkOnProcess() {
 
             printf("\t");
 
+        //    pbi = { 0 };
 
             /****************************************Process Name + argument**************************************/
 
             NtQueryInfoProcess = (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationProcess");
             NTSTATUS status = NtQueryInfoProcess(CHANDLE, ProcessBasicInformation, &pbi, sizeof(pbi), 0);
             if (ReadProcessMemory(CHANDLE, &pbi.PebBaseAddress->BeingDebugged, &offset, sizeof(offset), NULL)) {
-                if (ReadProcessMemory(CHANDLE, &pbi.PebBaseAddress->ProcessParameters, &test, sizeof(PRTL_USER_PROCESS_PARAMETERS), NULL)) {
+
+                PPEB ppeb = (PPEB)((PVOID*)&pbi)[1];
+                PPEB ppebCopy = (PPEB)malloc(sizeof(PEB));
+                if (ReadProcessMemory(CHANDLE, ppeb, ppebCopy, sizeof(PEB), NULL)) {
+                    PRTL_USER_PROCESS_PARAMETERS pRtlProcParam = ppebCopy->ProcessParameters;
+                    PRTL_USER_PROCESS_PARAMETERS pRtlProcParamCopy =(PRTL_USER_PROCESS_PARAMETERS)malloc(sizeof(RTL_USER_PROCESS_PARAMETERS));
+                    if (ReadProcessMemory(CHANDLE, pRtlProcParam, pRtlProcParamCopy, sizeof(RTL_USER_PROCESS_PARAMETERS), NULL)) {
+                        PWSTR wBuffer = pRtlProcParamCopy->CommandLine.Buffer;
+                        USHORT len = pRtlProcParamCopy->CommandLine.Length;
+                        PWSTR wBufferCopy = (PWSTR)malloc(len);
+                        if (ReadProcessMemory(CHANDLE, wBuffer, wBufferCopy, len, NULL)) {
+                            printf("%ls\t", wBufferCopy);
+                        }
+                    }
+                }
+
+                /***************************************ARE DEBUGGED ?*********************************************************************************/
+
+             /*   if (ReadProcessMemory(CHANDLE, &pbi.PebBaseAddress->ProcessParameters, &test, sizeof(PRTL_USER_PROCESS_PARAMETERS), NULL)) {
                     if (ReadProcessMemory(CHANDLE, &test->CommandLine, &UNICODE_STR, sizeof(UNICODE_STRING), NULL)) {
                      //Debug :)   printf(":: %hu\t", UNICODE_STR.Length);
-                        if (ReadProcessMemory(CHANDLE, &UNICODE_STR.Buffer, &Lbuff, sizeof(PWSTR), NULL)) {
+                      /*  if (ReadProcessMemory(CHANDLE, &UNICODE_STR.Buffer, &Lbuff, sizeof(PWSTR), NULL)) {
                             int p = 0;
                             printf("%c", Lbuff[0]);
                             while (Lbuff[p++] != '\0') {
@@ -220,7 +316,7 @@ void WalkOnProcess() {
                             }
                         }
                     }
-                }                               /*thanks https://geoffchappell.com/studies/windows/km/ntoskrnl/api/ps/psquery/class.htm */
+                }           */                    /*thanks https://geoffchappell.com/studies/windows/km/ntoskrnl/api/ps/psquery/class.htm */
 
             }
             if (offset == 1) {
@@ -233,7 +329,7 @@ void WalkOnProcess() {
           
             
         /***********************************************LOADDED DLL / MODULE same?*******************************************************************/
-
+          //  OneProcess = 1;
             if (OneProcess == 1) {
                 me32.dwSize = sizeof(MODULEENTRY32);
                 hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE32 | TH32CS_SNAPMODULE, pe32.th32ProcessID);
@@ -255,7 +351,7 @@ void WalkOnProcess() {
                             printf("%c", me32.szModule[w]);
                         }
 
-                        printf("---");
+                        printf("\n");
 
                     } while (Module32Next(hModuleSnap, &me32));
                 }
@@ -290,6 +386,7 @@ void WalkOnProcess() {
                     }
                 }
             }     
+            printf("\n");
 
             /******************************************THREAD INFO***************************************************************/
             le32.dwSize = sizeof(THREADENTRY32);
@@ -321,9 +418,6 @@ void WalkOnProcess() {
 
                                                 printf("THREAD ID %i :: EntryPoint:: 0x%p\n", le32.th32ThreadID, (void*)context.Rip);
                                             }
-
-
-
                                         }
                                     }
                                 }
@@ -346,7 +440,7 @@ void WalkOnProcess() {
 
 int main(int argc, char* argv[]) {
 
-    GetToken();
+   // GetToken();
 
     WalkOnProcess();
 
