@@ -13,6 +13,16 @@
 #include <intrin.h>
 #include <winnt.h>
 
+/*************************WMI for fun and profite*******************************************/
+#define _WIN32_DCOM
+#include <iostream>
+using namespace std;
+#include <comdef.h>
+#include <Wbemidl.h>
+
+#pragma comment(lib, "wbemuuid.lib")
+
+/************https://learn.microsoft.com/en-us/windows/win32/wmisdk/example--getting-wmi-data-from-the-local-computer\*********/
 
 //typedef struct CUS_CONTEXT {
 //    DWORD64 P1Home;
@@ -88,6 +98,31 @@
 //    DWORD64 LastExceptionFromRip;
 //} CUS_CONTEXT, * PCUS_CONTEXT;
 
+//typedef struct _SYSTEM_PROCESS_INFORMATION {
+//    ULONG NextEntryOffset;
+//    ULONG NumberOfThreads;
+//    BYTE Reserved1[48];
+//    UNICODE_STRING ImageName;
+//    KPRIORITY BasePriority;
+//    HANDLE UniqueProcessId;
+//    PVOID Reserved2;
+//    ULONG HandleCount;
+//    ULONG SessionId;
+//    PVOID Reserved3;
+//    SIZE_T PeakVirtualSize;
+//    SIZE_T VirtualSize;
+//    ULONG Reserved4;
+//    SIZE_T PeakWorkingSetSize;
+//    SIZE_T WorkingSetSize;
+//    PVOID Reserved5;
+//    SIZE_T QuotaPagedPoolUsage;
+//    PVOID Reserved6;
+//    SIZE_T QuotaNonPagedPoolUsage;
+//    SIZE_T PagefileUsage;
+//    SIZE_T PeakPagefileUsage;
+//    SIZE_T PrivatePageCount;
+//    LARGE_INTEGER Reserved7[6];
+//} SYSTEM_PROCESS_INFORMATION, *PSYSTEM_PROCESS_INFORMATION;
 
 
 typedef struct _THREAD_BASIC_INFORMATION
@@ -151,6 +186,112 @@ typedef NTSTATUS(NTAPI* _NtQueryInformationThread)(
     IN	ULONG               ThreadInformationLength,
     OUT PULONG              ReturnLength
     ); _NtQueryInformationThread NtQueryInfoThread;
+
+typedef NTSTATUS(NTAPI* _NtQuerySystemInformation)(
+    IN      SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    OUT     PVOID                    SystemInformation,
+    IN      ULONG                    SystemInformationLength,
+    OUT     PULONG                   ReturnLength OPTIONAL
+    ); _NtQuerySystemInformation NtQueryySystemInfo;
+
+void WmiQuery() {
+
+    HRESULT hres;
+
+   
+    hres = CoInitializeEx(0, COINIT_MULTITHREADED);
+    hres = CoInitializeSecurity(
+        NULL,
+        -1,                          // COM authentication
+        NULL,                        // Authentication services
+        NULL,                        // Reserved
+        RPC_C_AUTHN_LEVEL_DEFAULT,   // Default authentication 
+        RPC_C_IMP_LEVEL_IMPERSONATE, // Default Impersonation  
+        NULL,                        // Authentication info
+        EOAC_NONE,                   // Additional capabilities 
+        NULL                         // Reserved
+    );
+
+
+    IWbemLocator* pLoc = NULL;
+
+    hres = CoCreateInstance(
+        CLSID_WbemLocator,
+        0,
+        CLSCTX_INPROC_SERVER,
+        IID_IWbemLocator, (LPVOID*)&pLoc);
+
+    IWbemServices* pSvc = NULL;
+
+    hres = pLoc->ConnectServer(
+        _bstr_t(L"ROOT\\CIMV2"), // Object path of WMI namespace
+        NULL,                    // User name. NULL = current user
+        NULL,                    // User password. NULL = current
+        0,                       // Locale. NULL indicates current
+        NULL,                    // Security flags.
+        0,                       // Authority (for example, Kerberos)
+        0,                       // Context object 
+        &pSvc                    // pointer to IWbemServices proxy
+    );
+    hres = CoSetProxyBlanket(
+        pSvc,                        // Indicates the proxy to set
+        RPC_C_AUTHN_WINNT,           // RPC_C_AUTHN_xxx
+        RPC_C_AUTHZ_NONE,            // RPC_C_AUTHZ_xxx
+        NULL,                        // Server principal name 
+        RPC_C_AUTHN_LEVEL_CALL,      // RPC_C_AUTHN_LEVEL_xxx 
+        RPC_C_IMP_LEVEL_IMPERSONATE, // RPC_C_IMP_LEVEL_xxx
+        NULL,                        // client identity
+        EOAC_NONE                    // proxy capabilities 
+    );
+
+
+    IEnumWbemClassObject* pEnumerator = NULL;
+    hres = pSvc->ExecQuery(
+        bstr_t("WQL"),
+        bstr_t("SELECT * FROM Win32_Thread"),
+        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
+        NULL,
+        &pEnumerator);
+
+    IWbemClassObject* pclsObj = NULL;
+    ULONG uReturn = 0;
+
+    while (pEnumerator)
+    {
+        HRESULT hr = pEnumerator->Next(WBEM_INFINITE, 1,
+            &pclsObj, &uReturn);
+
+        if (0 == uReturn)
+        {
+            break;
+        }
+
+        VARIANT vtProp;
+
+        VariantInit(&vtProp);
+        // Get the value of the Name property
+        hr = pclsObj->Get(L"ThreadState", 0, &vtProp, 0, 0);
+        wcout << " OS Name : " << vtProp.llVal << endl;
+      //  printf("%c\n", vtProp.bstrVal);
+        VariantClear(&vtProp);
+
+        pclsObj->Release();
+    }
+
+    // Cleanup
+    // ========
+
+    pSvc->Release();
+    pLoc->Release();
+    pEnumerator->Release();
+    CoUninitialize();
+}
+
+
+
+
+
+
 HANDLE GetHandle(int PID) {
 
     //PROCESS_QUERY_INFORMATION
@@ -207,6 +348,9 @@ PVOID FindPebByHandle(HANDLE CHANDLE) {
 //    ULONG                         SessionId;
 //} CPEB, * PCPEB;
 //
+
+
+
 
 
 void WalkOnProcess() {
@@ -393,6 +537,20 @@ void WalkOnProcess() {
                             //if (le32.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(le32.th32OwnerProcessID)) {
                             //    // printf("0x%04x-", le32.th32ThreadID);
                             //}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                             /*****************************FIND TEB FOR FUN AND PROFITE************************************************************/
 
                             THREAD_BASIC_INFORMATION tbi;
@@ -418,6 +576,78 @@ void WalkOnProcess() {
                                     {
                                         printf("ThreadQuerySetWin32StartAddress:: 0x%p\n", addr);
                                     }
+
+                                    _SYSTEM_THREAD_INFORMATION idk;
+
+                                    _SYSTEM_THREAD_INFORMATION idk_cpy;
+
+
+                                    ULONG state;
+                                    //typedef enum _KTHREAD_STATE
+                                    //{
+                                    //    Initialized,
+                                    //    Ready,
+                                    //    Running,
+                                    //    Standby,
+                                    //    Terminated,
+                                    //    Waiting,
+                                    //    Transition,
+                                    //    DeferredReady,
+                                    //    GateWaitObsolete,
+                                    //    WaitingForProcessInSwap,
+                                    //    MaximumThreadState
+                                    //} KTHREAD_STATE, * PKTHREAD_STATE;
+
+                                    NTSTATUS status3 = NtQueryInfoThread(CTHANDLE, (THREADINFOCLASS)0x28, &idk, sizeof(idk), nullptr);
+
+                                 //   ReadProcessMemory(CHANDLE, &idk.Reserved2, &state, sizeof(state), nullptr);
+                                    // printf("status3:: %X\n", status3);
+                                    if (status3 >= 0) {
+                                       // printf("from var:: %i\n", state);
+
+                                        printf("NtQueryInfoThreadfrom :: %i\n", &idk);
+                                        switch(idk.ThreadState){
+                                        case 1:
+                                            printf("Initialized\n");
+                                            break;
+                                        case 2:
+                                            printf("Ready\n");
+                                            break;
+                                        case 3:
+                                            printf("Running\n");
+                                            break;
+                                        case 4:
+                                            printf("Standby\n");
+                                            break;
+                                        case 5:
+                                            printf("Terminated\n"); //Tous marqué terminated ?????????????????????????
+                                            break;
+                                        case 6:
+                                            printf("Waiting\n");
+                                            break;
+                                        case 7:
+                                            printf("Transition\n");
+                                            break;
+                                        case 8:
+                                            printf("DeferredReady\n");
+                                            break;
+                                        case 9:
+                                            printf("GateWaitObsolete\n");
+                                            break;
+                                        case 10:
+                                            printf("WaitingForProcessInSwap\n");
+                                            break;
+                                        case 11:
+                                            printf("MaximumThreadState\n");
+                                            break;
+                                        default:
+                                            printf("surement quelquechose\n");
+                                            break;
+                                        }
+                                    }
+                                   
+
+
 
 
 
@@ -454,10 +684,16 @@ void WalkOnProcess() {
                                         CONTEXT context = { 0 };
                                         context.ContextFlags = CONTEXT_FULL;
                                         if (GetThreadContext(CTHANDLE, &context)) {
-                                            ResumeThread(CTHANDLE);
+                                           ResumeThread(CTHANDLE);
                                             if ((void*)context.Rip != 0) {
 
                                                 printf("THREAD ID %i :: Thread Rip:: 0x%p\n", le32.th32ThreadID, (void*)context.Rip);
+
+
+                                                
+
+
+
                                             }
                                         }
                                     }
@@ -484,6 +720,8 @@ int main(int argc, char* argv[]) {
     // GetToken();
 
     WalkOnProcess();
+
+   // WmiQuery();
 
     return 0;
 }
