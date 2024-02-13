@@ -194,99 +194,6 @@ typedef NTSTATUS(NTAPI* _NtQuerySystemInformation)(
     OUT     PULONG                   ReturnLength OPTIONAL
     ); _NtQuerySystemInformation NtQueryySystemInfo;
 
-void WmiQuery() {
-
-    HRESULT hres;
-
-   
-    hres = CoInitializeEx(0, COINIT_MULTITHREADED);
-    hres = CoInitializeSecurity(
-        NULL,
-        -1,                          // COM authentication
-        NULL,                        // Authentication services
-        NULL,                        // Reserved
-        RPC_C_AUTHN_LEVEL_DEFAULT,   // Default authentication 
-        RPC_C_IMP_LEVEL_IMPERSONATE, // Default Impersonation  
-        NULL,                        // Authentication info
-        EOAC_NONE,                   // Additional capabilities 
-        NULL                         // Reserved
-    );
-
-
-    IWbemLocator* pLoc = NULL;
-
-    hres = CoCreateInstance(
-        CLSID_WbemLocator,
-        0,
-        CLSCTX_INPROC_SERVER,
-        IID_IWbemLocator, (LPVOID*)&pLoc);
-
-    IWbemServices* pSvc = NULL;
-
-    hres = pLoc->ConnectServer(
-        _bstr_t(L"ROOT\\CIMV2"), // Object path of WMI namespace
-        NULL,                    // User name. NULL = current user
-        NULL,                    // User password. NULL = current
-        0,                       // Locale. NULL indicates current
-        NULL,                    // Security flags.
-        0,                       // Authority (for example, Kerberos)
-        0,                       // Context object 
-        &pSvc                    // pointer to IWbemServices proxy
-    );
-    hres = CoSetProxyBlanket(
-        pSvc,                        // Indicates the proxy to set
-        RPC_C_AUTHN_WINNT,           // RPC_C_AUTHN_xxx
-        RPC_C_AUTHZ_NONE,            // RPC_C_AUTHZ_xxx
-        NULL,                        // Server principal name 
-        RPC_C_AUTHN_LEVEL_CALL,      // RPC_C_AUTHN_LEVEL_xxx 
-        RPC_C_IMP_LEVEL_IMPERSONATE, // RPC_C_IMP_LEVEL_xxx
-        NULL,                        // client identity
-        EOAC_NONE                    // proxy capabilities 
-    );
-
-
-    IEnumWbemClassObject* pEnumerator = NULL;
-    hres = pSvc->ExecQuery(
-        bstr_t("WQL"),
-        bstr_t("SELECT * FROM Win32_Thread"),
-        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
-        NULL,
-        &pEnumerator);
-
-    IWbemClassObject* pclsObj = NULL;
-    ULONG uReturn = 0;
-
-    while (pEnumerator)
-    {
-        HRESULT hr = pEnumerator->Next(WBEM_INFINITE, 1,
-            &pclsObj, &uReturn);
-
-        if (0 == uReturn)
-        {
-            break;
-        }
-
-        VARIANT vtProp;
-
-        VariantInit(&vtProp);
-        // Get the value of the Name property
-        hr = pclsObj->Get(L"ThreadState", 0, &vtProp, 0, 0);
-        wcout << " OS Name : " << vtProp.llVal << endl;
-      //  printf("%c\n", vtProp.bstrVal);
-        VariantClear(&vtProp);
-
-        pclsObj->Release();
-    }
-
-    // Cleanup
-    // ========
-
-    pSvc->Release();
-    pLoc->Release();
-    pEnumerator->Release();
-    CoUninitialize();
-}
-
 
 
 
@@ -455,7 +362,7 @@ void WalkOnProcess() {
             if (offset == 1) {
                 printf("DEBUGGED \t");
 
-                goto LabelIsFun; //:)
+                goto LabelIsFun; //    :)
             }
             printf("\t\t");
         LabelIsFun:
@@ -605,7 +512,7 @@ void WalkOnProcess() {
                                     if (status3 >= 0) {
                                        // printf("from var:: %i\n", state);
 
-                                        printf("NtQueryInfoThreadfrom :: %i\n", &idk);
+                                       // printf("NtQueryInfoThreadfrom :: %i\n", &idk);
                                         switch(idk.ThreadState){
                                         case 1:
                                             printf("Initialized\n");
@@ -669,7 +576,7 @@ void WalkOnProcess() {
                                             PPEB peb_1 = (PPEB)((PVOID*)&ptebCopy->ProcessEnvironmentBlock);
                                             PPEB pebCopy_1 = (PPEB)malloc(sizeof(PEB));
                                             if (ReadProcessMemory(CHANDLE, peb_1, pebCopy_1, sizeof(TEB), NULL)) {
-                                                printf("Addr Being Debugged :)%p\n", pebCopy_1->BeingDebugged);
+                                                //printf("Addr Being Debugged :)%p\n", pebCopy_1->BeingDebugged);
                                                 /*To FIX*/
                                             }
                                     }
