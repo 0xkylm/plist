@@ -1,0 +1,11 @@
+plist.cpp
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\ostream(365): warning C4530: C++ exception handler used, but unwind semantics are not enabled. Specify /EHsc
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\ostream(365): note: the template instantiation context (the oldest one first) is
+plist.cpp(274): note: see reference to class template instantiation 'std::basic_ostream<wchar_t,std::char_traits<wchar_t>>' being compiled
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\ostream(358): note: while compiling class template member function 'std::basic_ostream<wchar_t,std::char_traits<wchar_t>> &std::basic_ostream<wchar_t,std::char_traits<wchar_t>>::operator <<(__int64)'
+plist.cpp(274): note: see the first reference to 'std::basic_ostream<wchar_t,std::char_traits<wchar_t>>::operator <<' in 'WmiQuery'
+Microsoft (R) Incremental Linker Version 14.38.33135.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+/out:plist.exe 
+plist.obj 

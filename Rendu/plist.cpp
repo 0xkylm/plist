@@ -496,11 +496,11 @@ void WalkOnProcess(int process_pid = 0) {
                 }
 
                 /***********************************************LOADDED DLL / MODULE same?*******************************************************************/
-                printf("| DLL : ");
+                printf("\n| DLL : ");
                 
                 me32.dwSize = sizeof(MODULEENTRY32);
                 hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE32 | TH32CS_SNAPMODULE, pe32.th32ProcessID);
-                if (Module32First(hModuleSnap, &me32)) {
+                if (Module32First(hModuleSnap, &me32) && Module32Next(hModuleSnap, &me32)) {
                     do {
                         // HANDLE CTHANDLE = OpenThread(THREAD_ALL_ACCESS, FALSE, le32.th32ThreadID);
 
@@ -660,7 +660,7 @@ void WalkOnProcess(int process_pid = 0) {
                                     //  printf("TEB STACKABE %p\n", ptebCopy->ProcessEnvironmentBlock);
 
                                         if (ReadProcessMemory(CHANDLE, pteb, ptebCopy, sizeof(TEB), NULL)) {
-                                            printf("%p\n", ptebCopy);
+                                            printf("%p", ptebCopy);
 
                                             PPEB peb_1 = (PPEB)((PVOID*)&ptebCopy->ProcessEnvironmentBlock);
                                             PPEB pebCopy_1 = (PPEB)malloc(sizeof(PEB));
@@ -669,6 +669,7 @@ void WalkOnProcess(int process_pid = 0) {
                                                 /*To FIX*/
                                             }
                                         }
+                                        printf("\n");
                                     }
                                 }
                             }
