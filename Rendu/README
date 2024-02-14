@@ -1,0 +1,14 @@
+Compilation:
+
+$> compile.bat*
+
+Execution:
+
+Lister tous les proccessus : 
+$> plist.exe
+
+Informations sur un proccessus via son pid :
+$> plist.exe -p <pid>
+
+Obtenir de l'aide:
+$> plist.exe -h
