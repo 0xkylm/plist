@@ -193,7 +193,7 @@ typedef NTSTATUS(NTAPI* _NtQuerySystemInformation)(
     IN      ULONG                    SystemInformationLength,
     OUT     PULONG                   ReturnLength OPTIONAL
     ); _NtQuerySystemInformation NtQueryySystemInfo;
-
+/*
 void WmiQuery() {
 
     HRESULT hres;
@@ -287,7 +287,7 @@ void WmiQuery() {
     CoUninitialize();
 }
 
-
+*/
 
 
 
@@ -394,7 +394,7 @@ void WalkOnProcess(int process_pid = 0) {
                 continue;
 
             /***********************************PID + NAME*******************************************************/
-            printf("%d\t", pe32.th32ProcessID);
+            printf("%lu\t", pe32.th32ProcessID);
             i = 0;;
             printf("%c", pe32.szExeFile[i]);
             while (pe32.szExeFile[i++] != '\0') {
@@ -404,7 +404,7 @@ void WalkOnProcess(int process_pid = 0) {
                 printf(" ");
             }
 
-            printf("%d \t\t", pe32.cntThreads);
+            printf("%lu \t\t", pe32.cntThreads);
 
             HANDLE CHANDLE = GetHandle(pe32.th32ProcessID);
 
@@ -413,10 +413,12 @@ void WalkOnProcess(int process_pid = 0) {
             PROCESS_MEMORY_COUNTERS memCounter;
             BOOL result = GetProcessMemoryInfo(CHANDLE, &memCounter, sizeof(memCounter));
 
-            if ((double)memCounter.WorkingSetSize / 1024.0 / 1024.0 < 1000.0) {
+         
+            if ((double)memCounter.WorkingSetSize / 1024.0 / 1024.0 < 1000.0 && memCounter.WorkingSetSize != 1179664) { /*constant for cl*/
+  
                 printf("%f Mb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0);
             }
-            else if (memCounter.WorkingSetSize / 1024 / 1024 / 1024 < 10.0) {
+            else if (memCounter.WorkingSetSize / 1024 / 1024 / 1024 < 10.0 && memCounter.WorkingSetSize != 1179664) {
                 printf("%f Gb", (double)memCounter.WorkingSetSize / 1024.0 / 1024.0 / 1024.0 / 1024.0);
             }
             else {
@@ -464,7 +466,7 @@ void WalkOnProcess(int process_pid = 0) {
 
                     for (int i = 2; i >= 0; i--) {
                         if (values[i] < 10) printf("0");
-                        printf("%ld%c", values[i], i > 0 ? ':' : '\t');
+                        printf("%d%c", values[i], i > 0 ? ':' : '\t');
                     }
                 }
             }
@@ -523,7 +525,7 @@ void WalkOnProcess(int process_pid = 0) {
                     } while (Module32Next(hModuleSnap, &me32));
                 }
                 printf("\n| \n| Threads :\n");
-                printf("| ID\tEntry Point\t\tStatus\t\tStart addr\t\tPTEB ADD\n");
+                printf("| ID\tThread Rip\t\tStatus\t\tStart addr\t\tPTEB ADD\n");
                 /******************************************THREAD INFO***************************************************************/
                 le32.dwSize = sizeof(THREADENTRY32);
                 DWORD aa;
@@ -568,7 +570,7 @@ void WalkOnProcess(int process_pid = 0) {
                                                     if (GetThreadContext(CTHANDLE, &context)) {
                                                     ResumeThread(CTHANDLE);
                                                         if ((void*)context.Rip != 0) {
-                                                            printf("| %i\t%p\t", le32.th32ThreadID, (void*)context.Rip);
+                                                            printf("| %lu\t0x%p\t", le32.th32ThreadID, (void*)context.Rip);
                                                         }
                                                     }
                                                 }
@@ -660,7 +662,7 @@ void WalkOnProcess(int process_pid = 0) {
                                     //  printf("TEB STACKABE %p\n", ptebCopy->ProcessEnvironmentBlock);
 
                                         if (ReadProcessMemory(CHANDLE, pteb, ptebCopy, sizeof(TEB), NULL)) {
-                                            printf("%p", ptebCopy);
+                                            printf("0x%p", ptebCopy);
 
                                             PPEB peb_1 = (PPEB)((PVOID*)&ptebCopy->ProcessEnvironmentBlock);
                                             PPEB pebCopy_1 = (PPEB)malloc(sizeof(PEB));
