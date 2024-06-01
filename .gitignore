@@ -1,6 +1,8 @@
-x64/
-x86/
+x64
+debug
+release
+x86
 .exe
 .obj
-debug/
-release/
+.pdb
+.tlog
